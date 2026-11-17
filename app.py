@@ -20,7 +20,7 @@ import plotly.graph_objects as go
 import pydeck as pdk
 import streamlit as st
 
-from src.ai_summary import DEFAULT_MODEL, SUMMARY_VERSION, SummaryError, fallback_summary, generate_summary, indicator_evidence
+from src.ai_summary import DEFAULT_MODEL, SUMMARY_VERSION, SummaryError, explain_prediction, fallback_summary, generate_summary, indicator_evidence
 
 ROOT = Path(__file__).resolve().parent
 FILE_ESCOLAS = ROOT / "data" / "processed" / "radar_escolas.csv"
@@ -439,7 +439,7 @@ def school_history_table(history: pd.DataFrame) -> pd.DataFrame:
 
 
 def show_followup_summary(school: pd.Series, history: pd.DataFrame):
-    section("Resumo para acompanhamento", "Uma síntese da escola selecionada no recorte atual.")
+    section("Entenda o alerta desta escola", "O que foi previsto, quais dados foram observados e o que verificar com a gestão.")
     history_columns = ["ano", "ird", "afd_g1_fun", "afd_g1_med", "ied_alto_fun",
                        "ied_alto_med", "atu_fun", "atu_med", "reprov_fun", "reprov_med",
                        "aband_fun", "aband_med", "icg"]
@@ -492,15 +492,24 @@ def show_followup_summary(school: pd.Series, history: pd.DataFrame):
             del cache[next(iter(cache))]
     result = cache.get(cache_key) if api_key else None
     summary = result["summary"] if result else fallback_summary(context)
-    for field, title in (("historico", "Evolução da regularidade"), ("indicadores", "Outros indicadores observados"),
-                         ("previsao", "Previsão para 2026"),
-                         ("proximo_passo", "Próximo passo sugerido")):
-        st.markdown(f"**{title}**")
-        # Escape model output as text: it cannot inject HTML or clickable links.
-        st.markdown(f'<div style="color:{INK};font-size:14px;line-height:1.65;margin-bottom:12px">'
-                    f'{html.escape(summary[field])}</div>', unsafe_allow_html=True)
+    blocks = (
+        ("1 · O que o modelo previu", [explain_prediction(context)],
+         "A pontuação define a faixa; não é uma probabilidade nem uma explicação das causas. Risco baixo indica ausência de alerta prioritário, não ausência de problemas."),
+        ("2 · O que foi observado", [summary["historico"], summary["indicadores"]],
+         "Estes dados contextualizam a escola. O painel não calcula a contribuição de cada indicador para a previsão."),
+        ("3 · O que o gestor pode fazer", [summary["proximo_passo"]],
+         "Confirme os registros e a situação atual com a equipe antes de decidir uma ação."),
+    )
+    for column, (title, paragraphs, detail) in zip(st.columns(3, gap="medium"), blocks):
+        with column:
+            st.markdown(f"**{title}**")
+            for paragraph in paragraphs:
+                # Render model output as escaped text, never as executable HTML.
+                st.markdown(f'<div style="color:{INK};font-size:14px;line-height:1.65;margin-bottom:12px">'
+                            f'{html.escape(paragraph)}</div>', unsafe_allow_html=True)
+            note(detail)
     if result and not result["error"]:
-        source_note = "IA (Gemini) · Dados públicos da escola e do recorte. Revise antes de usar."
+        source_note = "Contexto e sugestões com IA (Gemini) · Revise antes de usar. A classificação vem do modelo preditivo do projeto."
     else:
         source_note = "Resumo calculado dos dados, sem IA."
         if result:
@@ -553,14 +562,13 @@ def individual_school():
     with kk[3]: kpi("Histórico disponível", f"{hs['ird'].notna().sum()} anos", "Dados observados de 2022 a 2025", GREEN)
 
     section_gap()
-    a, b = st.columns([1.3, 1], gap="medium")
-    with a:
-        with st.container(border=True, key="visual_panel_06"):
-            section("Histórico do IRD da escola", "Dados observados de 2022 a 2025. Para 2026, há apenas a classificação de risco.")
-            historical_plot(hs, school=True)
-    with b:
-        with st.container(border=True, key="visual_panel_07"):
-            show_followup_summary(school, hs)
+    with st.container(border=True, key="visual_panel_07"):
+        show_followup_summary(school, hs)
+
+    section_gap()
+    with st.container(border=True, key="visual_panel_06"):
+        section("Histórico do IRD da escola", "Dados observados de 2022 a 2025. Para 2026, há apenas a classificação de risco.")
+        historical_plot(hs, school=True)
 
     section_gap()
     with st.container(border=True, key="visual_panel_08"):

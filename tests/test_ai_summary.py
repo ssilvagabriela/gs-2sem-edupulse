@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
-from src.ai_summary import SUMMARY_FIELDS, SummaryError, fallback_summary, generate_summary, indicator_evidence
+from src.ai_summary import SUMMARY_FIELDS, SummaryError, explain_prediction, fallback_summary, generate_summary, indicator_evidence
 
 
 def context(rows=None, risk="alto"):
@@ -20,6 +20,21 @@ def response(summary=None, finish="STOP"):
 
 
 class SummaryTests(unittest.TestCase):
+    def test_prediction_explains_recorded_class_and_cutoff_without_ai(self):
+        for risk, score, cutoff in (("alto", .52, "a partir de 0,52"),
+                                    ("médio", .10, "de 0,10 até menos de 0,52"),
+                                    ("baixo", 0, "abaixo de 0,10")):
+            with self.subTest(risk=risk):
+                data = context(risk=risk)
+                data["previsao_2026"]["pontuacao_nao_calibrada"] = score
+                explanation = explain_prediction(data)
+                self.assertIn(f"risco {risk}", explanation)
+                self.assertIn(cutoff, explanation)
+                self.assertIn("usando os dados de 2025", explanation)
+                self.assertIn("IRD abaixo de 2 em 2026", explanation)
+        self.assertNotIn("pontuação registrada", explain_prediction(context()))
+        self.assertIn("Não há classificação", explain_prediction(context(risk="indisponível")))
+
     def test_other_indicators_keep_missing_zero_and_comparable_years(self):
         data = context([
             {"ano": 2022, "ird": 3, "ied_alto_fun": 50, "aband_fun": 1, "atu_med": 30},

@@ -56,6 +56,12 @@ Os filtros por município, rede e localização se aplicam às páginas de dados
 
 ## Resumo para acompanhamento com IA
 
+A seção **Entenda o alerta desta escola** aparece entre os cartões de classificação
+e o histórico do IRD. Ela separa três informações: o que o modelo previu (classe,
+pontuação e faixa, descritas diretamente dos dados), os indicadores observados que
+contextualizam a escola e as verificações sugeridas para a gestão. O painel não calcula
+a contribuição individual das variáveis e não atribui causas à baixa regularidade.
+
 O painel usa a API do Google Gemini para produzir quatro textos curtos: evolução do IRD,
 outros indicadores observados, previsão para 2026 e próximo passo sugerido. A análise
 destaca dois ou três indicadores adicionais com valores, etapas e anos, usando comparações
