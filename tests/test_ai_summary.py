@@ -4,7 +4,8 @@ import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
-from src.ai_summary import SUMMARY_FIELDS, SummaryError, explain_prediction, fallback_summary, generate_summary, indicator_evidence
+from src.alert_explanation import explain_prediction
+from src.ai_summary import SUMMARY_FIELDS, SummaryError, fallback_summary, generate_summary, indicator_evidence
 
 
 def context(rows=None, risk="alto"):

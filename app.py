@@ -20,7 +20,8 @@ import plotly.graph_objects as go
 import pydeck as pdk
 import streamlit as st
 
-from src.ai_summary import DEFAULT_MODEL, SUMMARY_VERSION, SummaryError, explain_prediction, fallback_summary, generate_summary, indicator_evidence
+from src.alert_explanation import explain_prediction
+from src.ai_summary import DEFAULT_MODEL, SUMMARY_VERSION, SummaryError, fallback_summary, generate_summary, indicator_evidence
 
 ROOT = Path(__file__).resolve().parent
 FILE_ESCOLAS = ROOT / "data" / "processed" / "radar_escolas.csv"
